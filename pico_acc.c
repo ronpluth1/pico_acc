@@ -93,7 +93,7 @@ int main() {
                fabs((sample.rawY) - averages[1]) +
                fabs((sample.rawZ) - averages[2]);
 
-        float new_window = sample.sample_time - window_end_time > TIME_WINDOW;
+        int new_window = sample.sample_time - window_end_time > TIME_WINDOW;
 
         if (new_window && !quiesced) {
             // Print data for the last window
