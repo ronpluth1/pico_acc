@@ -24,8 +24,9 @@ typedef struct {
     int16_t   rawX;
     int16_t   rawY;
     int16_t   rawZ;
-    int sec;
-    int ms;
+    // int sec;
+    // int ms;
+    float sample_time;
 } adxl345_sample;
 
 void update_raw(adxl345_sample *sample, int new_da);

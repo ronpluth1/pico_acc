@@ -17,8 +17,7 @@ void update_raw(adxl345_sample *sample, int new_da) {
     }
 
     time_in_us = time_us_64();
-    sample->sec = time_in_us / 1000000;
-    sample->ms = time_in_us % 1000000;
+    sample->sample_time = ((float) time_in_us) / 1000000.0;
 
     read_acc_reg_multiple(RA_DATAX0, raw_buf, 6);
     sample->rawX = (raw_buf[1] << 8) | raw_buf[0];

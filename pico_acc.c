@@ -8,7 +8,9 @@
 #include "reg.h"
 #include "math.h"
 
-#define NUM_SAMPLES 20
+#define NUM_SAMPLES     20
+#define DIFF_REQUIRED   12.0
+#define TIME_WINDOW     2.0
 
 void update_fifo(adxl345_sample *sample, int16_t *sample_fifo, float *averages) {
     int sample_num;
@@ -36,7 +38,6 @@ int main() {
 
     float averages[3];
     int16_t sample_fifo[NUM_SAMPLES*3];
-    float mag;
     float diff;
     int i;
 
@@ -77,44 +78,44 @@ int main() {
         update_fifo(&sample, sample_fifo, averages);
     }
 
+    float window_start_time = 0.0;
+    float window_end_time = 0.0;
+    float max_diff = 0;
+    int quiesced = 0;
+
     while (1) {
+
         update_raw(&sample, 1);
 
-#define DIFF_REQUIRED 8.0
+        float maxdiff = 0.0;
 
         diff = fabs((sample.rawX) - averages[0]) +
                fabs((sample.rawY) - averages[1]) +
                fabs((sample.rawZ) - averages[2]);
 
-        if (diff > DIFF_REQUIRED) {
-            mag = sqrt( pow(sample.rawX - averages[0], 2) +
-                        pow(sample.rawY - averages[1], 2) +
-                        pow(sample.rawZ - averages[2], 2)) * 0.0039;
+        float new_window = sample.sample_time - window_end_time > TIME_WINDOW;
 
-            printf("%d.%03d,%d,%d,%d,%f,%4.2f,%4.2f,%4.2f(%4.2f)\n", 
-                sample.sec, 
-                sample.ms, 
-                sample.rawX, 
-                sample.rawY, 
-                sample.rawZ, 
-                mag,
-                averages[0],
-                averages[1],
-                averages[2],
-                diff
-                );
+        if (new_window && !quiesced) {
+            // Print data for the last window
+            printf("%15.3f %10.2f %15.3f\n", window_start_time, max_diff, 
+                                       window_end_time-window_start_time);
+            quiesced = 1;
+        }
+
+        if (diff > DIFF_REQUIRED) {
+            quiesced = 0;
+            if (new_window) {
+                // Out of the window -- starting a new window
+                window_start_time = sample.sample_time;
+                max_diff = diff;
+            } else {
+                // In the window
+                if (diff > max_diff) {
+                    max_diff = diff;
+                }
+            }
+            window_end_time = sample.sample_time;
         }
         update_fifo(&sample, sample_fifo, averages);
-    }
-    char   wb;
-
-    while (1) {
-        puts("Hello World\n");
-        
-        printf("Doing the write/read now...\n");
-        wb = read_acc_reg (RA_DEVID);
-        printf ("Device ID is %b\n", wb);
-
-        sleep_ms(1000);
     }
 }
